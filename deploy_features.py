@@ -6,7 +6,14 @@ import onnxruntime as ort
 import pickle
 import os
 
+RESIZE_DIM = 512
+
 def extract_fft_features(img_gray: np.ndarray) -> np.ndarray:
+    h, w = img_gray.shape
+    scale = RESIZE_DIM / max(h, w)
+    if scale < 1.0:
+        img_gray = cv2.resize(img_gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        
     f = np.fft.fft2(img_gray)
     fshift = np.fft.fftshift(f)
     magnitude_spectrum = 20 * np.log(np.abs(fshift) + 1e-8)
@@ -33,8 +40,13 @@ def extract_fft_features(img_gray: np.ndarray) -> np.ndarray:
     return np.array([energy_low, energy_mid, energy_high, peak_to_mean, std_dev, kurtosis])
 
 def extract_glare_features(img_bgr: np.ndarray) -> np.ndarray:
+    h, w = img_bgr.shape[:2]
+    scale = RESIZE_DIM / max(h, w)
+    if scale < 1.0:
+        img_bgr = cv2.resize(img_bgr, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+
     hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
-    h, s, v = cv2.split(hsv)
+    h_ch, s, v = cv2.split(hsv)
     mask = cv2.inRange(hsv, (0, 0, 240), (180, 40, 255))
     
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -62,6 +74,11 @@ def extract_glare_features(img_bgr: np.ndarray) -> np.ndarray:
     return np.array([blob_count, area_ratio, avg_circularity, max_v, mean_v_glare])
 
 def extract_bezel_features(img_gray: np.ndarray) -> np.ndarray:
+    h, w = img_gray.shape
+    scale = RESIZE_DIM / max(h, w)
+    if scale < 1.0:
+        img_gray = cv2.resize(img_gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+
     edges = cv2.Canny(img_gray, 50, 150, apertureSize=3)
     lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=100, minLineLength=100, maxLineGap=10)
     
