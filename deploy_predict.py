@@ -20,7 +20,7 @@ def predict(image_path: str) -> float:
     features = extract_all_features_deploy(image_path, _cnn_model)
     features_2d = features.reshape(1, -1)
     
-    clf = _meta_bundle['model']
+    clf = _meta_bundle['classifier']
     scaler = _meta_bundle['scaler']
     
     features_scaled = scaler.transform(features_2d)

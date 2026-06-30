@@ -101,9 +101,21 @@ class ONNXMobileNet:
         self.input_name = self.session.get_inputs()[0].name
         
     def __call__(self, img_path):
-        # Preprocess using pure Numpy/Pillow instead of torchvision
+        # Preprocess exactly like torchvision's Resize(256) and CenterCrop(224)
         img = Image.open(img_path).convert('RGB')
-        img = img.resize((224, 224), Image.BILINEAR)
+        
+        # Resize shortest edge to 256
+        w, h = img.size
+        scale = 256.0 / min(w, h)
+        new_w, new_h = int(w * scale), int(h * scale)
+        img = img.resize((new_w, new_h), Image.BILINEAR)
+        
+        # Center crop 224
+        w, h = img.size
+        left = (w - 224) // 2
+        top = (h - 224) // 2
+        img = img.crop((left, top, left + 224, top + 224))
+        
         img_np = np.array(img).astype(np.float32) / 255.0
         
         # HWC to CHW
