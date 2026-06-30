@@ -1,5 +1,7 @@
 # Spot the Fake Photo: Hybrid Anti-Spoofing Detector
 
+🚀 **Live Demo:** [https://spot-the-fake-photo-4ue2.onrender.com/](https://spot-the-fake-photo-4ue2.onrender.com/)
+
 ![Accuracy](https://img.shields.io/badge/Accuracy-99.0%25-success)
 ![Latency](https://img.shields.io/badge/Latency-434ms-blue)
 ![Platform](https://img.shields.io/badge/Platform-CPU_Optimized-lightgrey)
@@ -79,6 +81,9 @@ The model was rigorously evaluated on the dataset using a stratified train/valid
 ## 💻 Web Demo & Deployment
 
 This project includes a beautiful, responsive, glassmorphic **Flask Web Interface** allowing users to upload an image and get an instant fraud probability score.
+
+### Try it Live!
+**Live Demo URL:** [https://spot-the-fake-photo-4ue2.onrender.com/](https://spot-the-fake-photo-4ue2.onrender.com/)
 
 ### Running the App Locally
 1. **Install Dependencies:**

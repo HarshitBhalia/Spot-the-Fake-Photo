@@ -1,5 +1,7 @@
 # Real vs Screen Photo Detector — Report
 
+**Live Demo:** [https://spot-the-fake-photo-4ue2.onrender.com/](https://spot-the-fake-photo-4ue2.onrender.com/)
+
 ## Approach
 
 This detector uses a **hybrid pipeline of four complementary signals** to distinguish real photos from photos-of-screens (recaptures). Each image is analyzed by:
