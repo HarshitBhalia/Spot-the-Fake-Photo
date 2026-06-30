@@ -286,7 +286,7 @@ def build_mobilenet(num_classes: int = 2) -> nn.Module:
     Load MobileNetV2 pretrained on ImageNet, freeze the convolutional backbone,
     and replace the classifier head with a small trainable head for our task.
     """
-    model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT)
+    model = models.mobilenet_v2(weights=None)
 
     # Freeze the entire convolutional feature extractor
     for param in model.features.parameters():
