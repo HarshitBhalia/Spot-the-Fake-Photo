@@ -24,16 +24,28 @@ def index():
             return render_template('index.html', error='No selected file')
             
         if file:
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            
             try:
+                filename = secure_filename(file.filename)
+                if not filename:
+                    filename = "image.jpg"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                
                 # Run prediction
+                import torch
+                torch.set_num_threads(1)  # Save memory on free servers
+                
                 score = predict(filepath)
                 result = "SCREEN / FAKE" if score >= 0.5 else "REAL PHOTO"
+                
+                # Clean up the file to save disk space
+                if os.path.exists(filepath):
+                    os.remove(filepath)
             except Exception as e:
-                return render_template('index.html', error=f'Error processing image: {str(e)}')
+                import traceback
+                error_details = traceback.format_exc()
+                print(error_details)  # Log to server console
+                return render_template('index.html', error=f'Error: {str(e)}')
                 
     return render_template('index.html', result=result, score=score, filename=filename)
 

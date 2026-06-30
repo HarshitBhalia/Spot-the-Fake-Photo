@@ -308,8 +308,7 @@ def build_mobilenet(num_classes: int = 2) -> nn.Module:
 def load_trained_mobilenet(model_path: str) -> nn.Module:
     """Load a trained MobileNetV2 with our custom head from disk."""
     model = build_mobilenet(num_classes=2)
-    model.load_state_dict(torch.load(model_path, map_location=DEVICE,
-                                     weights_only=True))
+    model.load_state_dict(torch.load(model_path, map_location=DEVICE))
     model.eval()
     return model
 
