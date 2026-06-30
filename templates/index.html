@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Real vs Screen Detector</title>
+    <title>Real vs Screen Photo Detector</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -19,215 +19,105 @@
         }
         .container {
             background-color: white;
-            padding: 30px;
+            padding: 40px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             text-align: center;
-            max-width: 600px;
+            max-width: 500px;
             width: 100%;
         }
         h1 {
             margin-top: 0;
             color: #1a1a1a;
+            font-size: 24px;
         }
-        .video-container {
-            position: relative;
-            width: 100%;
-            max-width: 480px;
-            margin: 0 auto 20px;
-            border-radius: 8px;
-            overflow: hidden;
-            background-color: #000;
-        }
-        video {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        .overlay {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 1.2rem;
+        .upload-form {
+            margin-top: 30px;
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
+            align-items: center;
+            gap: 20px;
         }
-        .score-value {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-top: 4px;
-        }
-        .real {
-            color: #4ade80;
-        }
-        .screen {
-            color: #f87171;
-        }
-        .controls {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
+        input[type="file"] {
+            font-size: 16px;
+            padding: 10px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            cursor: pointer;
         }
         button {
             background-color: #2563eb;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 6px;
-            font-size: 1rem;
+            font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
             transition: background-color 0.2s;
+            width: 100%;
         }
         button:hover {
             background-color: #1d4ed8;
         }
-        button:disabled {
-            background-color: #93c5fd;
-            cursor: not-allowed;
+        .result-box {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
         }
-        #error-message {
-            color: #ef4444;
-            margin-top: 10px;
-            display: none;
+        .result-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .score {
+            font-size: 16px;
+            color: #64748b;
+        }
+        .real {
+            color: #16a34a; /* Green */
+        }
+        .screen {
+            color: #dc2626; /* Red */
+        }
+        .error {
+            color: #dc2626;
+            margin-top: 20px;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Real vs Screen Detector</h1>
-    <p>Point your camera at a real object, then point it at a photo on a screen.</p>
+    <h1>Upload Photo to Detect</h1>
+    <p style="color: #64748b; margin-bottom: 0;">Select an image to check if it's a real photo or a picture of a screen.</p>
     
-    <div class="video-container">
-        <video id="video" autoplay playsinline></video>
-        <div class="overlay" id="result-overlay" style="display: none;">
-            <span id="prediction-label">Analyzing...</span>
-            <span class="score-value" id="score-value">Score: -</span>
+    <form class="upload-form" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".jpg, .jpeg, .png" required>
+        <button type="submit">Analyze Image</button>
+    </form>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if result %}
+    <div class="result-box">
+        <div class="result-title {% if result == 'REAL PHOTO' %}real{% else %}screen{% endif %}">
+            Result: {{ result }}
+        </div>
+        <div class="score">
+            Fraud Score: {{ "%.4f"|format(score) }} <br>
+            <small>(0 = Real, 1 = Screen)</small>
         </div>
     </div>
-    
-    <div class="controls">
-        <button id="start-btn">Start Camera</button>
-        <button id="stop-btn" disabled>Stop</button>
-    </div>
-    <p id="error-message"></p>
+    {% endif %}
 </div>
-
-<!-- Hidden canvas for capturing frames -->
-<canvas id="canvas" style="display: none;"></canvas>
-
-<script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const startBtn = document.getElementById('start-btn');
-    const stopBtn = document.getElementById('stop-btn');
-    const resultOverlay = document.getElementById('result-overlay');
-    const predictionLabel = document.getElementById('prediction-label');
-    const scoreValue = document.getElementById('score-value');
-    const errorMessage = document.getElementById('error-message');
-    
-    let stream = null;
-    let analyzeInterval = null;
-    let isAnalyzing = false;
-
-    async function startCamera() {
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } 
-            });
-            video.srcObject = stream;
-            
-            startBtn.disabled = true;
-            stopBtn.disabled = false;
-            errorMessage.style.display = 'none';
-            resultOverlay.style.display = 'flex';
-            
-            // Wait for video to be ready before setting canvas size
-            video.onloadedmetadata = () => {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                // Start analyzing frames
-                analyzeInterval = setInterval(analyzeFrame, 500); // 2 fps
-            };
-        } catch (err) {
-            console.error('Error accessing camera:', err);
-            errorMessage.textContent = 'Error accessing camera. Please ensure permissions are granted.';
-            errorMessage.style.display = 'block';
-        }
-    }
-
-    function stopCamera() {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            video.srcObject = null;
-        }
-        if (analyzeInterval) {
-            clearInterval(analyzeInterval);
-        }
-        
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-        resultOverlay.style.display = 'none';
-    }
-
-    async function analyzeFrame() {
-        if (isAnalyzing || !stream) return;
-        
-        isAnalyzing = true;
-        
-        // Draw current video frame to canvas
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Convert to base64 jpeg
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        
-        try {
-            const response = await fetch('/predict', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ image: dataUrl })
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                updateUI(data.score);
-            } else {
-                console.error('Server error:', await response.text());
-            }
-        } catch (err) {
-            console.error('Error sending frame to server:', err);
-        } finally {
-            isAnalyzing = false;
-        }
-    }
-
-    function updateUI(score) {
-        const threshold = 0.5;
-        scoreValue.textContent = `Score: ${score.toFixed(3)}`;
-        
-        if (score >= threshold) {
-            predictionLabel.textContent = 'SCREEN / FAKE';
-            predictionLabel.className = 'screen';
-            scoreValue.className = 'score-value screen';
-        } else {
-            predictionLabel.textContent = 'REAL PHOTO';
-            predictionLabel.className = 'real';
-            scoreValue.className = 'score-value real';
-        }
-    }
-
-    startBtn.addEventListener('click', startCamera);
-    stopBtn.addEventListener('click', stopCamera);
-</script>
 
 </body>
 </html>

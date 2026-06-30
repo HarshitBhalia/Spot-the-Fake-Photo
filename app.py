@@ -1,37 +1,41 @@
 import os
-import base64
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, render_template
+from werkzeug.utils import secure_filename
 from predict import predict
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'temp_uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
-
-@app.route('/predict', methods=['POST'])
-def run_prediction():
-    try:
-        data = request.json
-        if 'image' not in data:
-            return jsonify({'error': 'No image provided'}), 400
-        
-        # Image comes as data:image/jpeg;base64,.....
-        image_data = data['image'].split(',')[1]
-        image_bytes = base64.b64decode(image_data)
-        
-        temp_path = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_frame.jpg')
-        with open(temp_path, 'wb') as f:
-            f.write(image_bytes)
+    result = None
+    score = None
+    filename = None
+    
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return render_template('index.html', error='No file part')
             
-        score = predict(temp_path)
-        
-        return jsonify({'score': score})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        file = request.files['file']
+        if file.filename == '':
+            return render_template('index.html', error='No selected file')
+            
+        if file:
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            
+            try:
+                # Run prediction
+                score = predict(filepath)
+                result = "SCREEN / FAKE" if score >= 0.5 else "REAL PHOTO"
+            except Exception as e:
+                return render_template('index.html', error=f'Error processing image: {str(e)}')
+                
+    return render_template('index.html', result=result, score=score, filename=filename)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
