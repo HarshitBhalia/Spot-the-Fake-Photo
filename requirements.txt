@@ -3,8 +3,7 @@ Werkzeug==3.1.8
 Pillow==12.2.0
 numpy==2.5.0
 opencv-python-headless==4.13.0.92
-torch==2.12.1
-torchvision==0.27.1
 scikit-learn==1.9.0
 scipy==1.18.0
 gunicorn==22.0.0
+onnxruntime==1.20.1

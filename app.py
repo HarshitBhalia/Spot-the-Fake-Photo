@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, render_template
 from werkzeug.utils import secure_filename
-from predict import predict
+from deploy_predict import predict
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'temp_uploads'
@@ -32,9 +32,6 @@ def index():
                 file.save(filepath)
                 
                 # Run prediction
-                import torch
-                torch.set_num_threads(1)  # Save memory on free servers
-                
                 score = predict(filepath)
                 result = "SCREEN / FAKE" if score >= 0.5 else "REAL PHOTO"
                 
